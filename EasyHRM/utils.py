@@ -11,9 +11,21 @@ def clear_screen(root):
     for widget in root.winfo_children():
         widget.destroy()
 
+global window_width
+global window_height
+global window_x
+global window_y
+
+window_width = None
+window_height = None
+window_x = None
+window_y = None
+
 def go_back(current_screen, create_main_screen_func):
-    current_screen.destroy()
+    # Instead of destroying the window, clear its content and rebuild main screen
+    clear_screen(current_screen)
     create_main_screen_func()
+
 
 def toggle_mode():
     current_mode = ctk.get_appearance_mode()
