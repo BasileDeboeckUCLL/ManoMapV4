@@ -216,7 +216,7 @@ def show_comments(settings_frame):
         buttons_frame = ctk.CTkFrame(comment_frame)
         buttons_frame.pack(side='right', padx=5)
 
-        copy_button = ctk.CTkButton(buttons_frame, text="Copy", width=60,
+        copy_button = ctk.CTkButton(buttons_frame, text="Duplicate", width=60,
                                     command=lambda k=key, v=value, sf=settings_frame: copy_comment(k, v, sf))
         copy_button.pack(side='left', padx=5)
 
