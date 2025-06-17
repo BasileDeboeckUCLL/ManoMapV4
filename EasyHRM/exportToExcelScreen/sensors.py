@@ -122,4 +122,21 @@ def create_sensors_frame(root):
         value_label = ctk.CTkEntry(sensors_frame, textvariable=value, width=40)
         value_label.grid(row=row_index, column=1, padx=5, pady=5)
 
-    return sliders, settings_sliders
+    def reset_sensors():
+        # Reset checkboxes
+        for i, checkbox in enumerate(checkboxes):
+            checkbox.select()
+        # Reset sliders to default values
+        for i, (label_text, from_, to, start_value, end_value) in enumerate(colonregions):
+            sliders[i].set([start_value, end_value])
+            update_value_label((start_value, end_value), i)
+        # Reset settings sliders
+        for i, (label_text, from_, to, default_value) in enumerate(settings):
+            settings_sliders[i].set(default_value)
+        reset_disabled_sections()
+
+    # Add Reset Button
+    reset_button = ctk.CTkButton(sensors_frame, text="Reset Sensors", command=reset_sensors)
+    reset_button.grid(row=len(colonregions) + len(settings) + 1, column=0, columnspan=4, pady=10)
+
+    return sliders, settings_sliders, reset_sensors
