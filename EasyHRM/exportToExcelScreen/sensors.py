@@ -26,21 +26,39 @@ def create_sensors_frame(root):
 
     def update_value_label(value, i):
         start, end = int(round(value[0], 0)), int(round(value[1], 0))
+        
+        # Validate boundaries with next slider
+        if i < len(sliders) - 1:
+            next_slider_end = int(round(sliders[i + 1].get()[1], 0))
+            if end >= next_slider_end:
+                end = next_slider_end - 1
+        
+        # Validate boundaries with previous slider
+        if i > 0:
+            prev_slider_start = int(round(sliders[i - 1].get()[0], 0))
+            if start <= prev_slider_start:
+                start = prev_slider_start + 1
+
+        # Update current slider's labels
         value_labels[i][0].configure(text=f"{start}")
         value_labels[i][1].configure(text=f"{end}")
+        sliders[i].set([start, end])
 
         # Update the next slider's start value
         if i < len(sliders) - 1:
-            sliders[i + 1].set([end + 1, sliders[i + 1].get()[1]])
-            value_labels[i + 1][0].configure(text=f"{end + 1}")
-            value_labels[i + 1][1].configure(text=f"{int(sliders[i + 1].get()[1])}")
+            next_start, next_end = sliders[i + 1].get()
+            if end + 1 <= next_end:  # Ensure we don't exceed the next slider's end
+                sliders[i + 1].set([end + 1, next_end])
+                value_labels[i + 1][0].configure(text=f"{end + 1}")
+                value_labels[i + 1][1].configure(text=f"{int(next_end)}")
 
         # Update the previous slider's end value
         if i > 0:
             prev_start, prev_end = sliders[i - 1].get()
-            sliders[i - 1].set([prev_start, start - 1])
-            value_labels[i - 1][0].configure(text=f"{int(prev_start)}")
-            value_labels[i - 1][1].configure(text=f"{start - 1}")
+            if prev_start <= start - 1:  # Ensure we don't go below the previous slider's start
+                sliders[i - 1].set([prev_start, start - 1])
+                value_labels[i - 1][0].configure(text=f"{int(prev_start)}")
+                value_labels[i - 1][1].configure(text=f"{start - 1}")
     
     def checkbox_event(i, label_text):
         stripped_label_text = label_text.strip(":")
