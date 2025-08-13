@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ManoMapV4 – EasyHRM
 
 Automatische patroonanalyse in colonic high-resolution manometry (cHRM) data.  
@@ -19,3 +20,9 @@ Detecteren van anterograde, retrograde en simultane contractiele patronen, met e
 
 ## 📂 Structuur
 Zorg dat detectiebestanden worden verwerkt vóór export. Analysebestanden krijgen een `Statistics` tab met ingekleurde rijen.
+=======
+# ManoMapV3
+
+An application used for detecting patterns in manometric data, as well as performing automatic analysis.
+This application is fully interoperable with plotHRM!
+>>>>>>> 9cb55a2d7e1e97df885f40d110d7b223d3371054
