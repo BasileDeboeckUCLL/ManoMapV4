@@ -8,11 +8,11 @@ def create_sensors_frame(root):
 
     # Format for each setting: (label_text, from_, to, start_value, end_value)
     colonregions = [
-        ("Ascending:", 1, 80, 1, 62),
-        ("Transverse:", 1, 80, 63, 68),
-        ("Descending:", 1, 80, 69, 72),
-        ("Sigmoid:", 1, 80, 73, 76),
-        ("Rectum:", 1, 80, 77, 80)
+        ("Ascending:", 1, 80, 1, 16),
+        ("Transverse:", 1, 80, 17, 32),
+        ("Descending:", 1, 80, 33, 48),
+        ("Sigmoid:", 1, 80, 49, 64),
+        ("Rectum:", 1, 80, 65, 80)
     ]
     sliders = []
     value_labels = []
