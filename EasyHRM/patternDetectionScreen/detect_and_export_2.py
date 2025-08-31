@@ -122,6 +122,7 @@ def read_data(total_seconds):
 
     dataframe = pd.read_csv(input_file_path, sep=" ", header=None)
 
+    dataframe.iloc[:, 0] = pd.to_numeric(dataframe.iloc[:, 0], errors='coerce')
     dataframe = dataframe[dataframe.iloc[:, 0] > total_seconds]
 
     # Remove milliseconds from timestamps
