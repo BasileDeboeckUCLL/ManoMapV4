@@ -34,13 +34,12 @@ def export_to_excel_screen(root, go_back_func, create_main_screen_func):
     # Sensors Frame
     sensors_frame = ctk.CTkFrame(main_frame, border_width=1, border_color="gray")
     sensors_frame.grid(row=2, column=0, pady=20, padx=20, sticky="nsew")
+    # this must be updated later on to know which slider contains what.
+    sliders, settings_sliders = create_sensors_frame(sensors_frame)
 
-    # Label for Sensor frame at the top
+    # Label for Sensor frame
     sensors_label = ctk.CTkLabel(sensors_frame, text="Sensors", font=("Arial", 14, "bold"))
     sensors_label.pack(pady=10)
-
-    # this must be updated later on to know which slider contains what.
-    sliders, settings_sliders, reset_sensors = create_sensors_frame(sensors_frame)
 
     # Events Frame
     events_frame = ctk.CTkFrame(main_frame, border_width=1, border_color="gray")
@@ -49,20 +48,15 @@ def export_to_excel_screen(root, go_back_func, create_main_screen_func):
     # Label for Events frame
     events_label = ctk.CTkLabel(events_frame, text="Events", font=("Arial", 14, "bold"))
     events_label.pack(pady=10)
-    reset_events = create_event_interface(events_frame)
+    first_event_text = create_event_interface(events_frame)
     events = show_comments(events_frame)
     
 
     # Bottom Buttons
-    button_export = ctk.CTkButton(main_frame, text="Export", command=lambda: exportToXlsx(df, file_name, sliders, events, settings_sliders, None), state='disabled')
+    button_export = ctk.CTkButton(main_frame, text="Export", command=lambda: exportToXlsx(df, file_name, sliders, events, settings_sliders, first_event_text), state='disabled')
     button_export.grid(row=3, column=0, columnspan=3, pady=10, sticky="ew")
 
-    def back_and_reset():
-        reset_sensors()
-        reset_events()
-        go_back_func(root, create_main_screen_func)
-
-    button_back = ctk.CTkButton(main_frame, text="Back", command=back_and_reset)
+    button_back = ctk.CTkButton(main_frame, text="Back", command=lambda: go_back_func(root, create_main_screen_func))
     button_back.grid(row=4, column=0, columnspan=3, pady=10, sticky="ew")
 
     # Configure grid weights for responsiveness
@@ -70,3 +64,4 @@ def export_to_excel_screen(root, go_back_func, create_main_screen_func):
     main_frame.grid_columnconfigure(1, weight=1)
     main_frame.grid_columnconfigure(2, weight=1)
     main_frame.grid_rowconfigure(2, weight=1)
+    
