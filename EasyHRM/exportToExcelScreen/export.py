@@ -68,10 +68,15 @@ def initialize_comprehensive_statistics(event_names):
 def classify_pattern_enhanced(row, sliders, distance_between_sensors):
     """Enhanced pattern classification with new rules and error handling"""
     try:
-        # Safely get values with bounds checking
+        # FIXED: Length is in Column J (index 9, not 10)
         length_sensors = 0
-        if len(row) > 10 and row[10] and row[10].value is not None:
-            length_sensors = int(float(row[10].value))
+        if len(row) > 9 and row[9] and row[9].value is not None:
+            try:
+                length_sensors = int(float(row[9].value))
+                print(f"DEBUG: Length sensors read: {length_sensors} from column J (index 9)")
+            except (ValueError, TypeError):
+                print(f"DEBUG: Could not convert length value '{row[9].value}' to int")
+                length_sensors = 0
         
         direction = ''
         # Try column 5 (F) for direction - this should contain 'a', 'r', 's'
@@ -93,11 +98,12 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors):
                     direction = ''  # Default if no valid direction found
         
         velocity = 0
-        if len(row) > 7 and row[7] and row[7].value is not None:
+        if len(row) > 6 and row[6] and row[6].value is not None:
             try:
-                velocity = float(row[7].value)
+                velocity = float(row[6].value)
+                print(f"DEBUG: Velocity read: {velocity} from column G (index 6)")
             except (ValueError, TypeError):
-                print(f"DEBUG: Could not convert velocity value '{row[7].value}' to float")
+                print(f"DEBUG: Could not convert velocity value '{row[6].value}' to float")
                 velocity = 0
         
         # Calculate distance (FIXED: ensure distance_between_sensors is passed properly)
@@ -587,21 +593,25 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                         length_counters[event] = length_counter_template.copy() 
                         high_amplitude_counters[event] = high_amplitude_counters_template.copy()
 
-                # Store current counters before switching events (FIXED)
-                if current_event:
-                    # Apply anti-double-counting to length_counter before storing
-                    length_counter["Long a"] = max(0, length_counter["Long a"] - high_amplitude_counter["HAPCs"])
-                    length_counter["Long r"] = max(0, length_counter["Long r"] - high_amplitude_counter["HARPCs"])
-                    
-                    # FIXED: Always store counters
-                    counters[current_event] = counter.copy()
-                    length_counters[current_event] = length_counter.copy()
-                    high_amplitude_counters[current_event] = high_amplitude_counter.copy()
-                    
-                    print(f"DEBUG: Stored counters for {current_event}:")
-                    print(f"  Regional: {counter}")
-                    print(f"  Length: {length_counter}")  
-                    print(f"  HAPC: {high_amplitude_counter}")
+                # CRITICAL FIX: Force store all accumulated counters immediately
+                print(f"DEBUG: FORCE STORING counters before switching from {current_event}")
+                print(f"DEBUG: About to store - Regional: {dict(counter)}")
+                print(f"DEBUG: About to store - Length: {dict(length_counter)}")
+                print(f"DEBUG: About to store - HAPC: {dict(high_amplitude_counter)}")
+
+                # Apply anti-double-counting
+                length_counter["Long a"] = max(0, length_counter["Long a"] - high_amplitude_counter["HAPCs"])
+                length_counter["Long r"] = max(0, length_counter["Long r"] - high_amplitude_counter["HARPCs"])
+
+                # FORCE STORAGE - Use dict() to ensure deep copy
+                counters[current_event] = dict(counter)
+                length_counters[current_event] = dict(length_counter)  
+                high_amplitude_counters[current_event] = dict(high_amplitude_counter)
+
+                print(f"DEBUG: FORCE STORED for {current_event}:")
+                print(f"  Regional: {counters[current_event]}")
+                print(f"  Length: {length_counters[current_event]}")
+                print(f"  HAPC: {high_amplitude_counters[current_event]}")
                 
                 # Switch to new event
                 new_event = row[0].value.strip()
@@ -696,11 +706,13 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
 
             # FIXED: Use classification results for pattern counting
             pattern = classification['direction']
-            length = 0
-            if len(row) > 10 and row[10].value is not None:
+            length_sensors = 0
+            if len(row) > 9 and row[9] and row[9].value is not None:
                 try:
-                    length = int(float(str(row[10].value)))
+                    length_sensors = int(float(str(row[9].value)))
+                    print(f"DEBUG: Length from main loop: {length_sensors} from column J (index 9)")
                 except (ValueError, TypeError):
+                    print(f"DEBUG: Could not read length from column J: {row[9].value}")
                     continue
             
             # FIXED: Update length counters using classification results
