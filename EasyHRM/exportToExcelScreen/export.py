@@ -675,7 +675,12 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
         length_counters[current_event] = length_counter.copy()
         high_amplitude_counters[current_event] = high_amplitude_counter.copy()
 
-    apply_hapc_harpc_corrections(comprehensive_stats)
+    # Calculate correct totals before applying HAPC/HARPC corrections
+    calculate_correct_totals(comprehensive_stats)
+    apply_hapc_harpc_corrections_fixed(comprehensive_stats)
+
+    sync_old_table_with_comprehensive_totals(length_counters, high_amplitude_counters, comprehensive_stats, all_events)
+    
     create_comprehensive_analysis_table(wb, comprehensive_stats, all_events)
     
     # Create summary table
@@ -735,6 +740,77 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
     
     return wb
 
+def calculate_correct_totals(comprehensive_stats):
+    """Calculate totals by summing individual region counts"""
+    regions = ["Ascending", "Transverse", "Descending", "Sigmoid", "Rectum"]
+    region_ranges = ["Ascending - Rectum", "Transverse - Rectum", "Descending - Rectum", "Sigmoid-Rectum"]
+    
+    for event in comprehensive_stats:
+        for pattern_type in comprehensive_stats[event]:
+            if pattern_type in ['HAPCs', 'HARPCs', 'cyclic s', 'cyclic r', 'cyclic a']:
+                continue  # Skip special categories
+                
+            # Sum all individual regions and pan-colonic patterns
+            total_count = 0
+            total_velocities = []
+            total_amplitudes = []
+            
+            for region in regions:
+                if region in comprehensive_stats[event][pattern_type]:
+                    stats = comprehensive_stats[event][pattern_type][region]
+                    total_count += stats['count']
+                    total_velocities.extend(stats['velocities'])
+                    total_amplitudes.extend(stats['amplitudes'])
+            
+            for region_range in region_ranges:
+                if region_range in comprehensive_stats[event][pattern_type]:
+                    stats = comprehensive_stats[event][pattern_type][region_range]
+                    total_count += stats['count']
+                    total_velocities.extend(stats['velocities'])
+                    total_amplitudes.extend(stats['amplitudes'])
+            
+            # Update the Total
+            comprehensive_stats[event][pattern_type]['Total'] = {
+                'count': total_count,
+                'velocities': total_velocities,
+                'amplitudes': total_amplitudes
+            }
+
+def apply_hapc_harpc_corrections_fixed(comprehensive_stats):
+    """Apply HAPC/HARPC corrections only to the patterns that were actually HAPCs/HARPCs"""
+    for event in comprehensive_stats:
+        hapc_count = comprehensive_stats[event]['HAPCs']['count']
+        harpc_count = comprehensive_stats[event]['HARPCs']['count']
+        
+        # Only subtract HAPCs from Long a total if there are actual HAPCs
+        if hapc_count > 0 and 'Long a' in comprehensive_stats[event]:
+            current_total = comprehensive_stats[event]['Long a']['Total']['count']
+            comprehensive_stats[event]['Long a']['Total']['count'] = max(0, current_total - hapc_count)
+        
+        # Only subtract HARPCs from Long r total if there are actual HARPCs  
+        if harpc_count > 0 and 'Long r' in comprehensive_stats[event]:
+            current_total = comprehensive_stats[event]['Long r']['Total']['count']
+            comprehensive_stats[event]['Long r']['Total']['count'] = max(0, current_total - harpc_count)
+
+def sync_old_table_with_comprehensive_totals(length_counters, high_amplitude_counters, comprehensive_stats, all_events):
+    """Sync the old table totals with the corrected comprehensive table totals"""
+    pattern_mapping = {
+        "Long s": "Long s",
+        "Short s": "Short s", 
+        "Long r": "Long r",
+        "Short r": "Short r",
+        "Long a": "Long a",
+        "Short a": "Short a"
+    }
+    
+    for event in all_events:
+        if event in comprehensive_stats and event in length_counters:
+            for old_pattern, comp_pattern in pattern_mapping.items():
+                if comp_pattern in comprehensive_stats[event] and 'Total' in comprehensive_stats[event][comp_pattern]:
+                    # Use the corrected total from comprehensive table
+                    corrected_total = comprehensive_stats[event][comp_pattern]['Total']['count']
+                    length_counters[event][old_pattern] = corrected_total
+
 def update_comprehensive_stats(comprehensive_stats, classification, current_event, row, sliders):
     """Update comprehensive statistics with pattern data"""
     if current_event not in comprehensive_stats:
@@ -769,33 +845,6 @@ def update_comprehensive_stats(comprehensive_stats, classification, current_even
                 stats['velocities'].append(classification['velocity'])
             if classification['amplitudes']:
                 stats['amplitudes'].extend(classification['amplitudes'])
-    
-    # Update totals
-    if 'Total' in comprehensive_stats[current_event][pattern_key]:
-        stats = comprehensive_stats[current_event][pattern_key]['Total']
-        stats['count'] += 1
-        if classification['velocity'] != 0:
-            stats['velocities'].append(classification['velocity'])
-        if classification['amplitudes']:
-            stats['amplitudes'].extend(classification['amplitudes'])
-
-def apply_hapc_harpc_corrections(comprehensive_stats):
-    """Apply anti-double-counting for HAPCs/HARPCs"""
-    for event in comprehensive_stats:
-        hapc_count = comprehensive_stats[event]['HAPCs']['count']
-        harpc_count = comprehensive_stats[event]['HARPCs']['count']
-        
-        if hapc_count > 0 and 'Long a' in comprehensive_stats[event]:
-            for region_key in comprehensive_stats[event]['Long a']:
-                if comprehensive_stats[event]['Long a'][region_key]['count'] > 0:
-                    comprehensive_stats[event]['Long a']['Total']['count'] -= hapc_count
-                    break
-        
-        if harpc_count > 0 and 'Long r' in comprehensive_stats[event]:
-            for region_key in comprehensive_stats[event]['Long r']:
-                if comprehensive_stats[event]['Long r'][region_key]['count'] > 0:
-                    comprehensive_stats[event]['Long r']['Total']['count'] -= harpc_count
-                    break
 
 def is_pan_colonic_pattern(row, sliders, starting_region):
     """Check if pattern propagates to rectum"""
