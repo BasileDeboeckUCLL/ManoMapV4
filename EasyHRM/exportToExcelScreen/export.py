@@ -68,7 +68,7 @@ def initialize_comprehensive_statistics(event_names):
 def classify_pattern_enhanced(row, sliders, distance_between_sensors):
     """Enhanced pattern classification with new rules and error handling"""
     try:
-        # FIXED: Length is in Column J (index 9, not 10)
+        # Length is in Column J (index 9, not 10)
         length_sensors = 0
         if len(row) > 9 and row[9] and row[9].value is not None:
             try:
@@ -106,7 +106,7 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors):
                 print(f"DEBUG: Could not convert velocity value '{row[6].value}' to float")
                 velocity = 0
         
-        # Calculate distance (FIXED: ensure distance_between_sensors is passed properly)
+        # Calculate distance (ensure distance_between_sensors is passed properly)
         distance_mm = distance_between_sensors * length_sensors if distance_between_sensors and length_sensors else 0
 
         print(f"DEBUG: Distance calculation - distance_between_sensors: {distance_between_sensors}, length_sensors: {length_sensors}, distance_mm: {distance_mm}")
@@ -114,9 +114,9 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors):
         # NEW: Long pattern must be ≥100mm AND ≥5 sensors
         is_long = (distance_mm >= 100) and (length_sensors >= LONG_PATTERN_MINIMUM_SENSORS)
         
-        # Get all sensor amplitudes for this pattern (FIXED)
+        # Get all sensor amplitudes with correct indexing
         amplitudes = []
-        for col_idx in range(12, min(len(row), 50)):  # Sensor columns start at 12 (after shift)
+        for col_idx in range(13, min(len(row), 50)):  # Start from index 13
             if (col_idx < len(row) and row[col_idx] and row[col_idx].value is not None and 
                 isinstance(row[col_idx].value, (int, float)) and row[col_idx].value > 0):
                 amplitudes.append(float(row[col_idx].value))
@@ -127,9 +127,9 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors):
         high_amp_count = count_consecutive_high_amplitude(amplitudes, HIGH_AMPLITUDE_MINIMUM_VALUE)
         is_high_amplitude = (high_amp_count >= HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH)
 
-        # FIXED: HAPC/HARPC detection - remove length requirement, focus on amplitude + distance
-        is_hapc = is_high_amplitude and (direction == 'a') and (distance_mm >= 100)
-        is_harpc = is_high_amplitude and (direction == 'r') and (distance_mm >= 100)
+        # HAPC/HARPC detection - remove length requirement, focus on amplitude + distance
+        is_hapc = is_high_amplitude and (direction == 'a') and (distance_mm >= 100) and (length_sensors >= LONG_PATTERN_MINIMUM_SENSORS)
+        is_harpc = is_high_amplitude and (direction == 'r') and (distance_mm >= 100) and (length_sensors >= LONG_PATTERN_MINIMUM_SENSORS)
 
         print(f"DEBUG: HAPC/HARPC check - high_amp_count: {high_amp_count}, direction: {direction}, distance_mm: {distance_mm}, is_hapc: {is_hapc}, is_harpc: {is_harpc}")
         
@@ -197,19 +197,19 @@ def determine_starting_region(row, sliders):
         if not active_regions:
             return "Ascending"  # Default fallback
         
-        # Find the first active sensor (first non-zero sensor value)
+        # Find the first active sensor with correct indexing
         first_active_sensor = None
-        for col_idx in range(12, min(len(row), 50)):  # Sensor columns start at index 12
+        for col_idx in range(13, min(len(row), 50)):  # Start from index 13
             if (col_idx < len(row) and row[col_idx] and row[col_idx].value is not None and 
                 isinstance(row[col_idx].value, (int, float)) and row[col_idx].value > 0):
-                # Convert column index to sensor number (col 12 = sensor 1, col 13 = sensor 2, etc.)
-                first_active_sensor = col_idx - 11
+                # Convert index to sensor number (index 13 = sensor 1)
+                first_active_sensor = col_idx - 12  # 13-12=1 for sensor 1
                 break
         
         if first_active_sensor is None:
             return active_regions[0]  # Default to first region
         
-        # Find which region contains this sensor (FIXED: proper boundary handling)
+        # Find which region contains this sensor (proper boundary handling)
         for i, (start_sensor, end_sensor) in enumerate(active_sliders):
             # Fix: Ensure first sensor of region is properly assigned
             if start_sensor <= first_active_sensor <= end_sensor:
@@ -229,6 +229,62 @@ def determine_starting_region(row, sliders):
     except (ValueError, TypeError, IndexError) as e:
         print(f"Error in determine_starting_region: {e}")
         return "Ascending"  # Default fallback
+    
+def determine_ending_region(row, sliders):
+    """Determine which colon region a pattern ends in based on last active sensor"""
+    try:
+        slider_values = getSliderValues(sliders)
+        if not slider_values:
+            return "Rectum"
+        
+        regions = ["Ascending", "Transverse", "Descending", "Sigmoid", "Rectum"]
+        
+        # Remove disabled sections
+        active_regions = []
+        active_sliders = []
+        for i, region in enumerate(regions):
+            if region not in disabled_sections and i < len(slider_values):
+                active_regions.append(region)
+                active_sliders.append(slider_values[i])
+        
+        if not active_regions:
+            return "Rectum"
+        
+        # Start from correct index after column shifts
+        last_active_sensor = None
+        # Sensor data now starts at index 13 (after 2 column insertions)
+        for row_idx in range(len(row) - 1, 12, -1):  # Search backwards from end to index 13
+            if (row_idx < len(row) and row[row_idx] and row[row_idx].value is not None and 
+                isinstance(row[row_idx].value, (int, float)) and row[row_idx].value > 0):
+                # Convert row index to sensor number (index 13 = sensor 1)
+                last_active_sensor = row_idx - 12  # 13-12=1 for sensor 1
+                break
+        
+        if last_active_sensor is None:
+            return active_regions[-1]
+        
+        print(f"DEBUG: End region - last active sensor: {last_active_sensor}")
+        
+        # Find which region contains this sensor
+        for i, (start_sensor, end_sensor) in enumerate(active_sliders):
+            if start_sensor <= last_active_sensor <= end_sensor:
+                print(f"DEBUG: End region found: {active_regions[i]} for sensor {last_active_sensor}")
+                return active_regions[i]
+
+        # If sensor is after all regions, assign to last region
+        if last_active_sensor > active_sliders[-1][1]:
+            return active_regions[-1]
+
+        # If sensor is before first region, find the closest one
+        for i in range(len(active_sliders)):
+            if last_active_sensor <= active_sliders[i][1]:
+                return active_regions[i]
+
+        return active_regions[-1]
+        
+    except (ValueError, TypeError, IndexError) as e:
+        print(f"Error in determine_ending_region: {e}")
+        return "Rectum"
 
 def custom_sort(item):
     order = ["Ascending", "Transverse", "Descending", "Sigmoid", "Rectum"]
@@ -255,55 +311,34 @@ def exportToXlsx(data, file_name, sliders, events, settings_sliders, first_event
     
     try:
         # Split the file path into the base name and extension
-        #print("DEBUG: Processing file name")
         base_name, ext = file_name.rsplit('.', 1)
         new_file_name = f"{base_name}_analysis.xlsx"
-        #print(f"DEBUG: New file name: {new_file_name}")
 
         # Write the DataFrame to an Excel file
-        #print("DEBUG: Writing DataFrame to Excel")
         data.to_excel(new_file_name, index=False)
-        #print("DEBUG: DataFrame written successfully")
 
-        #print("DEBUG: Inserting empty rows")
         insertEmptyRows(new_file_name, 12)
-        #print("DEBUG: Empty rows inserted")
-
-        #print("DEBUG: Creating space for comprehensive table")
         create_space_for_comprehensive_table(new_file_name)
-        #print("DEBUG: Space created")
-
-        #print("DEBUG: Merging and coloring cells")
         mergeAndColorCells(new_file_name, sliders)
-        #print("DEBUG: Cells merged and colored")
 
-        #print("DEBUG: Processing events")
         event_names = []
         for time, event_name in events.items():
-            #print(f"DEBUG: Processing event {event_name} at time {time}")
             event_names.append(event_name)
             try:
                 total_seconds = time // 10  # Convert deciseconds to seconds
                 hour, remainder = divmod(total_seconds, 3600)  # Calculate hours
                 minute, second = divmod(remainder, 60)  # Calculate minutes and seconds
-                #print(f"DEBUG: Event time converted to {hour}:{minute}:{second}")
                 addEventNameAtGivenTime(new_file_name, hour, minute, second, event_name)
-                #print(f"DEBUG: Event {event_name} added successfully")
             except Exception as e:
                 print(f"DEBUG: Error processing event {event_name}: {e}")
                 raise
         
-        #print("DEBUG: About to call assignSectionsBasedOnStartSection")
-        #print(f"DEBUG: sliders type: {type(sliders)}")
-        #print(f"DEBUG: settings_sliders type: {type(settings_sliders)}")
-        #print(f"DEBUG: first_event_text: {first_event_text}")
-        
         wb = assignSectionsBasedOnStartSection(new_file_name, sliders, event_names, settings_sliders, first_event_text)
-        #print("DEBUG: assignSectionsBasedOnStartSection completed")
         
         file_name = filedialog.asksaveasfilename(defaultextension=".xlsx", 
                                                filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")], 
                                                initialfile=new_file_name)
+        
         wb.save(file_name)
         print(f"Data successfully exported to {new_file_name}")
         
@@ -365,14 +400,27 @@ def mergeAndColorCells(file_name, sliders):
         "Rectum": "B1A0C7"
     }
 
-    # Add empty column between K and L (shift sensor headers right by 1)
-    # Insert empty column at L (column 12)
-    ws.insert_cols(12)
+    # Insert two empty columns - one at L (column 12) for End Region, one at M (column 13) for spacing
+    ws.insert_cols(12)  # End Region column
+    ws.insert_cols(13)  # Empty spacing column
 
-    # Merge cells and color them for each section (SHIFTED by 1 column)
+    # End Region header in L72 - this will be handled by the loop below
+    ws.cell(row=72, column=12, value="End Region")
+
+    # Color sequence table headers (A72-L72) with #BFBFBF
+    header_color = "BFBFBF" 
+    for col in range(1, 13):  # Columns A through L
+        header_cell = ws.cell(row=72, column=col)
+        if header_cell.value:  # Only color if there's content
+            header_cell.fill = PatternFill(start_color=header_color, end_color=header_color, fill_type="solid")
+            header_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Correct region header positioning (back to +13)
     for i, (start, end) in enumerate(sliders):
-        start_col = get_column_letter(start + 12)  # Changed from +11 to +12
-        end_col = get_column_letter(end + 12)      # Changed from +11 to +12
+        start_col = get_column_letter(start + 13)  # Back to +13
+        end_col = get_column_letter(end + 13)      # Back to +13
+        
+        # Region headers on row 71
         ws.merge_cells(f'{start_col}71:{end_col}71')
         cell = ws[f'{start_col}71']
         cell.value = sections[i]
@@ -381,10 +429,16 @@ def mergeAndColorCells(file_name, sliders):
         cell.fill = fill
 
         # Color the individual cells in the merged range
-        for col in range(start + 12, end + 13):  # Changed from +11/+12 to +12/+13
+        for col in range(start + 13, end + 14):  # Back to +13/+14
             ws[f'{get_column_letter(col)}71'].fill = fill
 
-    # Save the workbook
+        # Sensor numbers on row 72 with correct positioning (+13 instead of +12)
+        for sensor_num in range(start, end + 1):
+            sensor_col = sensor_num + 13  # FIXED: Changed from +12 to +13
+            sensor_cell = ws.cell(row=72, column=sensor_col, value=sensor_num)
+            sensor_cell.alignment = Alignment(horizontal='center', vertical='center')
+            sensor_cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+
     wb.save(file_name)
 
 def addEventNameAtGivenTime(file_name, hour, minute, second, event_name):
@@ -437,9 +491,8 @@ def addEventNameAtGivenTime(file_name, hour, minute, second, event_name):
     # Insert a new row at the identified position
     ws.insert_rows(insertion_row)
     
-    # Fill in the event details with yellow background
-    # Fill in the event details with yellow background (EXTENDED to column K)
-    for col in range(1, 12):  # Changed from 11 to 12 to include column K
+    # Fill in the event details with yellow background (EXTENDED to column L - End Region)
+    for col in range(1, 13):  # Changed from 12 to 13 to include End Region column (L)
         cell = ws.cell(row=insertion_row, column=col)
         cell.value = event_name
         cell.fill = PatternFill(start_color=EVENT_COLOR, end_color=EVENT_COLOR, fill_type="solid")
@@ -639,6 +692,7 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
             # Enhanced pattern classification
             classification = classify_pattern_enhanced(row, sliders, distance_between_sensors)
             starting_region = determine_starting_region(row, sliders)
+            ending_region = determine_ending_region(row, sliders)
             classification['starting_region'] = starting_region
 
             print(f"DEBUG Row {row_idx}: Raw direction='{row[6].value if len(row) > 6 else 'N/A'}', "
@@ -649,6 +703,9 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
 
             # Fill Start Region column (Column K)
             region_cell = ws.cell(row=row_idx, column=11, value=starting_region)
+
+            # Fill End Region column (Column L)
+            end_region_cell = ws.cell(row=row_idx, column=12, value=ending_region)
             
             # Color the Start Region cell based on region
             region_colors = {
@@ -658,14 +715,19 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 "Sigmoid": "D9D9D9",
                 "Rectum": "B1A0C7"
             }
+
             if starting_region in region_colors:
                 region_cell.fill = PatternFill(start_color=region_colors[starting_region], 
                                             end_color=region_colors[starting_region], fill_type="solid")
+                
+            if ending_region in region_colors:
+                end_region_cell.fill = PatternFill(start_color=region_colors[ending_region], 
+                                            end_color=region_colors[ending_region], fill_type="solid")
             
             # Update comprehensive statistics
             update_comprehensive_stats(comprehensive_stats, classification, current_event, row, sliders)
             
-            # Handle HAPCs/HARPCs for BOTH old and new counters (FIXED)
+            # Handle HAPCs/HARPCs for BOTH old and new counters (FIXED INDEXING)
             if classification['is_hapc']:
                 high_amplitude_counter["HAPCs"] += 1
                 comprehensive_stats[current_event]['HAPCs']['count'] += 1
@@ -676,15 +738,17 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 
                 print(f"DEBUG: HAPC detected! Count now: {high_amplitude_counter['HAPCs']}")
                 
-                # Color HAPC sensor cells GREEN (#92D050) - FIXED for column shift
-                for col_idx in range(13, len(row) + 13):  # Adjust for empty column insertion
-                    if (col_idx - 13 < len(row) and row[col_idx - 13].value and 
-                        isinstance(row[col_idx - 13].value, (int, float)) and 
-                        row[col_idx - 13].value >= HIGH_AMPLITUDE_MINIMUM_VALUE):
-                        sensor_cell = ws.cell(row=row_idx, column=col_idx)
+                # Color ALL sensor cells with amplitude data GREEN, with correct indexing
+                for row_idx_sensor in range(13, len(row)):  # Start from index 13 (sensor data)
+                    if (row[row_idx_sensor] and row[row_idx_sensor].value is not None and 
+                        isinstance(row[row_idx_sensor].value, (int, float)) and 
+                        row[row_idx_sensor].value > 0):
+                        # Convert to Excel column (sensor data starts at column N = 14)
+                        excel_col = row_idx_sensor + 1  # 13->14, 14->15, etc.
+                        sensor_cell = ws.cell(row=row_idx, column=excel_col)
                         sensor_cell.fill = PatternFill(start_color="92D050", end_color="92D050", fill_type="solid")
-                        print(f"DEBUG: Colored HAPC cell at row {row_idx}, col {col_idx}")
-                            
+                        print(f"DEBUG: Colored HAPC cell at row {row_idx}, col {excel_col} with value {row[row_idx_sensor].value}")
+                        
             elif classification['is_harpc']:
                 high_amplitude_counter["HARPCs"] += 1
                 comprehensive_stats[current_event]['HARPCs']['count'] += 1
@@ -695,16 +759,18 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 
                 print(f"DEBUG: HARPC detected! Count now: {high_amplitude_counter['HARPCs']}")
                 
-                # Color HARPC sensor cells RED (#FF0000) - FIXED for column shift
-                for col_idx in range(13, len(row) + 13):  # Adjust for empty column insertion
-                    if (col_idx - 13 < len(row) and row[col_idx - 13].value and 
-                        isinstance(row[col_idx - 13].value, (int, float)) and 
-                        row[col_idx - 13].value >= HIGH_AMPLITUDE_MINIMUM_VALUE):
-                        sensor_cell = ws.cell(row=row_idx, column=col_idx)
+                # Color ALL sensor cells with amplitude data RED, with correct indexing
+                for row_idx_sensor in range(13, len(row)):  # Start from index 13 (sensor data)
+                    if (row[row_idx_sensor] and row[row_idx_sensor].value is not None and 
+                        isinstance(row[row_idx_sensor].value, (int, float)) and 
+                        row[row_idx_sensor].value > 0):
+                        # Convert to Excel column (sensor data starts at column N = 14)
+                        excel_col = row_idx_sensor + 1  # 13->14, 14->15, etc.
+                        sensor_cell = ws.cell(row=row_idx, column=excel_col)
                         sensor_cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
-                        print(f"DEBUG: Colored HARPC cell at row {row_idx}, col {col_idx}")
+                        print(f"DEBUG: Colored HARPC cell at row {row_idx}, col {excel_col} with value {row[row_idx_sensor].value}")
 
-            # FIXED: Use classification results for pattern counting
+            # Use classification results for pattern counting
             pattern = classification['direction']
             length_sensors = 0
             if len(row) > 9 and row[9] and row[9].value is not None:
@@ -715,7 +781,7 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                     print(f"DEBUG: Could not read length from column J: {row[9].value}")
                     continue
             
-            # FIXED: Update length counters using classification results
+            # Update length counters using classification results
             if pattern and classification['length_category']:
                 pattern_type = classification['length_category']  # "Long" or "Short"
                 counter_key = f"{pattern_type} {pattern}"
@@ -726,15 +792,10 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 else:
                     print(f"DEBUG: Length counter key '{counter_key}' not found. Available keys: {list(length_counter.keys())}")
 
-            # Regional counting logic for old table (COMPLETELY FIXED)
+            # Regional counting logic for old table
             if starting_region and starting_region in counter:
                 counter[starting_region] += 1
                 print(f"DEBUG: Regional counter - Added to {starting_region}, now {counter[starting_region]}")
-                
-                # Color the length cell using region colors
-                length_cell = ws.cell(row=row_idx, column=10)  # Column J (Length)
-                fill = PatternFill(start_color=colors[starting_region], end_color=colors[starting_region], fill_type="solid")
-                length_cell.fill = fill
                 
                 # Check for pan-colonic pattern using comprehensive stats detection
                 if is_pan_colonic_pattern(row, sliders, starting_region):
@@ -899,7 +960,12 @@ def update_comprehensive_stats(comprehensive_stats, classification, current_even
     
     # Check for pan-colonic patterns (region-range stats)
     if is_pan_colonic_pattern(row, sliders, starting_region):
-        region_range = f"{starting_region} - Rectum"
+        # Match the key format used in initialization (no space for Sigmoid-Rectum)
+        if starting_region == "Sigmoid":
+            region_range = "Sigmoid-Rectum"  # No space to match initialization
+        else:
+            region_range = f"{starting_region} - Rectum"  # Keep space for others
+            
         if region_range in comprehensive_stats[current_event][pattern_key]:
             stats = comprehensive_stats[current_event][pattern_key][region_range]
             stats['count'] += 1
@@ -908,6 +974,8 @@ def update_comprehensive_stats(comprehensive_stats, classification, current_even
             if classification['amplitudes']:
                 stats['amplitudes'].extend(classification['amplitudes'])
             print(f"DEBUG: Updated pan-colonic {region_range} count to {stats['count']}")
+        else:
+            print(f"DEBUG: Pan-colonic region range {region_range} not found in pattern {pattern_key}")
     
     # Update totals
     if 'Total' in comprehensive_stats[current_event][pattern_key]:
@@ -948,17 +1016,17 @@ def is_pan_colonic_pattern(row, sliders, starting_region):
     
     rectum_start, rectum_end = slider_values[4]  # Get rectum sensor range
     
-    # Check if there are active sensors in rectum region
+    # Check if there are active sensors in rectum region (start from index 13)
     has_rectum_activity = False
-    for col in range(12, min(len(row), rectum_end + 12)):  # Account for column shift
-        sensor_num = col - 11  # Convert to sensor number
+    for col in range(13, min(len(row), rectum_end + 13)):  # Start from 13, not 12
+        sensor_num = col - 12  # Convert to sensor number (13-12=1 for sensor 1)
         if (rectum_start <= sensor_num <= rectum_end and 
             col < len(row) and row[col].value is not None and 
             isinstance(row[col].value, (int, float)) and row[col].value > 0):
             has_rectum_activity = True
             break
     
-    # Also check if there's activity in the starting region
+    # Check if there's activity in the starting region
     starting_region_idx = None
     regions = ["Ascending", "Transverse", "Descending", "Sigmoid", "Rectum"]
     if starting_region in regions:
@@ -967,10 +1035,10 @@ def is_pan_colonic_pattern(row, sliders, starting_region):
     if starting_region_idx is not None and starting_region_idx < len(slider_values):
         start_sensors, end_sensors = slider_values[starting_region_idx]
         has_starting_activity = any(
-            (start_sensors <= (col - 11) <= end_sensors and 
+            (start_sensors <= (col - 12) <= end_sensors and  # col - 12 instead of col - 11
              col < len(row) and row[col].value is not None and 
              isinstance(row[col].value, (int, float)) and row[col].value > 0)
-            for col in range(12, min(len(row), end_sensors + 12))
+            for col in range(13, min(len(row), end_sensors + 13))  # Start from 13, not 12
         )
         
         result = has_rectum_activity and has_starting_activity
@@ -1209,7 +1277,7 @@ def apply_comprehensive_table_formatting(ws, start_row, start_col, event_names):
         col_offset += 7
     
     # Metric header row colors (Row 3: Light gray)
-    metric_gray = "D9D9D9"
+    metric_gray = "BFBFBF"
     for col in range(start_col, start_col + 1 + len(event_names) * 7):
         cell = ws.cell(row=start_row + 1, column=col)
         cell.fill = PatternFill(start_color=metric_gray, end_color=metric_gray, fill_type="solid")
