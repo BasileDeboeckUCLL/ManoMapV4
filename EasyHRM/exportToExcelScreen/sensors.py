@@ -175,6 +175,28 @@ def create_sensors_frame(root):
                 value_labels[i][0].configure(text=f"{new_start}")
                 value_labels[i][1].configure(text=f"{new_end}")
 
+    def reset_sensors():
+        """Reset all sensors to their default values"""
+        # Default values from the original colonregions list
+        default_values = [(1, 16), (17, 32), (33, 48), (49, 64), (65, 80)]
+        
+        # Reset all checkboxes to checked
+        for i, checkbox in enumerate(checkboxes):
+            checkbox.select()
+        
+        # Reset disabled sections
+        reset_disabled_sections()
+        
+        # Reset all sliders to default values
+        for i, (start_val, end_val) in enumerate(default_values):
+            sliders[i].set([start_val, end_val])
+            sliders[i].configure(state="normal", progress_color="grey", button_color="#1F6AA5")
+            value_labels[i][0].configure(text=f"{start_val}")
+            value_labels[i][1].configure(text=f"{end_val}")
+        
+        # Reset distance between sensors slider
+        settings_sliders[0].set(25)  # Default value for distance between sensors
+
     checkboxes = []
     for i, (label_text, from_, to, start_value, end_value) in enumerate(colonregions):
         setting_checkbox = ctk.CTkCheckBox(sensors_frame, text=label_text, onvalue="on", offvalue="off", command=lambda i=i, label_text=label_text: checkbox_event(i, label_text))
@@ -217,5 +239,9 @@ def create_sensors_frame(root):
 
         value_label = ctk.CTkEntry(sensors_frame, textvariable=value, width=40)
         value_label.grid(row=row_index, column=1, padx=5, pady=5)
+
+    # Add reset button
+    reset_button = ctk.CTkButton(sensors_frame, text="Reset Sensors", command=reset_sensors)
+    reset_button.grid(row=len(colonregions) + len(settings) + 1, column=0, columnspan=4, padx=5, pady=10, sticky="ew")
 
     return sliders, settings_sliders
