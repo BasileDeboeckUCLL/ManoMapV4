@@ -163,10 +163,15 @@ def show_comments(settings_frame):
         comment_frame.grid_columnconfigure(0, weight=1)  # Text expands
         comment_frame.grid_columnconfigure(1, weight=0)  # Buttons stay fixed
 
-        # Event text on the left
+        # Create the full text
+        full_text = f"Time: {convertTimeToText(key)} - Event: {value}"
+        
+        # Event text on the left with text wrapping and ellipsis
         timeAndCommentText = ctk.CTkLabel(comment_frame, 
-                                        text=f"Time: {convertTimeToText(key)} - Event: {value}",
-                                        anchor="w")
+                                        text=full_text,
+                                        anchor="w",
+                                        wraplength=260,  # Adjust this value as needed
+                                        justify="left")
         timeAndCommentText.grid(row=0, column=0, padx=(10, 5), pady=5, sticky="ew")
 
         # Button frame on the right with fixed position
