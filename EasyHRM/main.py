@@ -20,8 +20,14 @@ def create_main_window():
             base_path = os.path.abspath("./EasyHRM")
         return os.path.join(base_path, relative_path)
 
-    icon_path = resource_path("EasyHRM_icon.ico")
-    app.iconbitmap(icon_path)
+    # Safe icon setting with error handling
+    try:
+        icon_path = resource_path("EasyHRM_icon.ico")
+        if os.path.exists(icon_path):
+            app.iconbitmap(icon_path)
+    except Exception as e:
+        print(f"Could not set icon: {e}")
+        # Continue without icon - app will still work
 
     screen_width = app.winfo_screenwidth()
     screen_height = app.winfo_screenheight()
@@ -65,11 +71,17 @@ def build_main_screen(app):
     title_label = ctk.CTkLabel(title_logo_frame, text="EasyHRM", font=("Arial", 30, "bold"))
     title_label.pack(side="left", padx=10)
 
-    logo_path = resource_path("EasyHRM_icon.ico")
-    logo_image = Image.open(logo_path)
-    logo = ctk.CTkImage(logo_image, size=(75, 75))
-    logo_label = ctk.CTkLabel(title_logo_frame, image=logo, text="")
-    logo_label.pack(side="left", padx=10)
+    # Safe logo loading with error handling
+    try:
+        logo_path = resource_path("EasyHRM_icon.ico")
+        if os.path.exists(logo_path):
+            logo_image = Image.open(logo_path)
+            logo = ctk.CTkImage(logo_image, size=(75, 75))
+            logo_label = ctk.CTkLabel(title_logo_frame, image=logo, text="")
+            logo_label.pack(side="left", padx=10)
+    except Exception as e:
+        print(f"Could not load logo: {e}")
+        # Continue without logo - app will still work
 
     description_text = (
         "Optimise your colon examination with our application! "
