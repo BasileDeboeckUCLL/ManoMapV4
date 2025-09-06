@@ -6,6 +6,10 @@ def create_sensors_frame(root):
     sensors_frame = ctk.CTkFrame(root)
     sensors_frame.pack(pady=10, padx=10, fill="both", expand=True)
 
+    # Move sensors label to top
+    sensors_label = ctk.CTkLabel(sensors_frame, text="Sensors", font=("Arial", 14, "bold"))
+    sensors_label.grid(row=0, column=0, columnspan=4, pady=(10, 5))
+
     # Format for each setting: (label_text, from_, to, start_value, end_value)
     colonregions = [
         ("Ascending:", 1, 80, 1, 16),
@@ -197,26 +201,40 @@ def create_sensors_frame(root):
         # Reset distance between sensors slider
         settings_sliders[0].set(25)  # Default value for distance between sensors
 
+        # Reset pattern parameters
+        pattern_params['long_sensors'].delete(0, 'end')
+        pattern_params['long_sensors'].insert(0, "5")
+        pattern_params['long_distance'].delete(0, 'end')
+        pattern_params['long_distance'].insert(0, "100")
+        pattern_params['hapc_sensors'].delete(0, 'end')
+        pattern_params['hapc_sensors'].insert(0, "5")
+        pattern_params['hapc_distance'].delete(0, 'end')
+        pattern_params['hapc_distance'].insert(0, "100")
+        pattern_params['hapc_consecutive'].delete(0, 'end')
+        pattern_params['hapc_consecutive'].insert(0, "3")
+        pattern_params['hapc_amplitude'].delete(0, 'end')
+        pattern_params['hapc_amplitude'].insert(0, "100")
+
     checkboxes = []
     for i, (label_text, from_, to, start_value, end_value) in enumerate(colonregions):
         setting_checkbox = ctk.CTkCheckBox(sensors_frame, text=label_text, onvalue="on", offvalue="off", command=lambda i=i, label_text=label_text: checkbox_event(i, label_text))
-        setting_checkbox.grid(row=i, column=0, padx=5, pady=5)
+        setting_checkbox.grid(row=i+1, column=0, padx=5, pady=5)
         setting_checkbox.select()
         checkboxes.append(setting_checkbox)
 
         # Value label to the left of the slider
         value_label1 = ctk.CTkLabel(sensors_frame, text="")
-        value_label1.grid(row=i, column=1, padx=5, pady=5)
+        value_label1.grid(row=i+1, column=1, padx=5, pady=5)
 
         # Slider
         slider = CTkRangeSlider(sensors_frame, from_=from_, to=to, command=lambda value, i=i: update_value_label(value, i))
-        slider.grid(row=i, column=2, padx=5, pady=5, sticky="ew")
+        slider.grid(row=i+1, column=2, padx=5, pady=5, sticky="ew")
         slider.set([start_value, end_value])
         sliders.append(slider)
 
         # Value label to the right of the slider
         value_label2 = ctk.CTkLabel(sensors_frame, text="")
-        value_label2.grid(row=i, column=3, padx=5, pady=5)
+        value_label2.grid(row=i+1, column=3, padx=5, pady=5)
 
         # Append the tuple of value labels
         value_labels.append((value_label1, value_label2))
@@ -226,7 +244,7 @@ def create_sensors_frame(root):
 
     settings_sliders = []
     for i, (label_text, from_, to, default_value) in enumerate(settings):
-        row_index = i + len(colonregions)
+        row_index = i + len(colonregions) + 1
         label = ctk.CTkLabel(sensors_frame, text=label_text)
         label.grid(row=row_index, column=0, padx=5, pady=5)
 
@@ -240,8 +258,63 @@ def create_sensors_frame(root):
         value_label = ctk.CTkEntry(sensors_frame, textvariable=value, width=40)
         value_label.grid(row=row_index, column=1, padx=5, pady=5)
 
-    # Add reset button
+    # Reset button
     reset_button = ctk.CTkButton(sensors_frame, text="Reset Sensors", command=reset_sensors)
-    reset_button.grid(row=len(colonregions) + len(settings) + 1, column=0, columnspan=4, padx=5, pady=10, sticky="ew")
+    reset_button.grid(row=len(colonregions) + len(settings) + 2, column=0, columnspan=4, padx=5, pady=10, sticky="ew")
 
-    return sliders, settings_sliders
+    # Pattern Classification Parameters
+    pattern_row_start = len(colonregions) + len(settings) + 3
+    
+    # Long pattern parameters
+    long_frame = ctk.CTkFrame(sensors_frame, fg_color="transparent")
+    long_frame.grid(row=pattern_row_start, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+    
+    ctk.CTkLabel(long_frame, text="Long = min").pack(side="left", padx=2)
+    long_sensors_entry = ctk.CTkEntry(long_frame, width=40)
+    long_sensors_entry.pack(side="left", padx=2)
+    long_sensors_entry.insert(0, "5")
+    
+    ctk.CTkLabel(long_frame, text="sensors and").pack(side="left", padx=2)
+    long_distance_entry = ctk.CTkEntry(long_frame, width=40)
+    long_distance_entry.pack(side="left", padx=2)
+    long_distance_entry.insert(0, "100")
+    
+    ctk.CTkLabel(long_frame, text="mm long").pack(side="left", padx=2)
+    
+    # HA(R)PC parameters
+    hapc_frame = ctk.CTkFrame(sensors_frame, fg_color="transparent")
+    hapc_frame.grid(row=pattern_row_start + 1, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+    
+    ctk.CTkLabel(hapc_frame, text="HA(R)PCs = min").pack(side="left", padx=2)
+    hapc_sensors_entry = ctk.CTkEntry(hapc_frame, width=40)
+    hapc_sensors_entry.pack(side="left", padx=2)
+    hapc_sensors_entry.insert(0, "5")
+    
+    ctk.CTkLabel(hapc_frame, text="sensors and").pack(side="left", padx=2)
+    hapc_distance_entry = ctk.CTkEntry(hapc_frame, width=40)
+    hapc_distance_entry.pack(side="left", padx=2)
+    hapc_distance_entry.insert(0, "100")
+    
+    ctk.CTkLabel(hapc_frame, text="mm long of which").pack(side="left", padx=2)
+    hapc_consecutive_entry = ctk.CTkEntry(hapc_frame, width=40)
+    hapc_consecutive_entry.pack(side="left", padx=2)
+    hapc_consecutive_entry.insert(0, "3")
+    
+    ctk.CTkLabel(hapc_frame, text="is above").pack(side="left", padx=2)
+    hapc_amplitude_entry = ctk.CTkEntry(hapc_frame, width=40)
+    hapc_amplitude_entry.pack(side="left", padx=2)
+    hapc_amplitude_entry.insert(0, "100")
+    
+    ctk.CTkLabel(hapc_frame, text="mmHg").pack(side="left", padx=2)
+    
+    # Store pattern parameter entries
+    pattern_params = {
+        'long_sensors': long_sensors_entry,
+        'long_distance': long_distance_entry,
+        'hapc_sensors': hapc_sensors_entry,
+        'hapc_distance': hapc_distance_entry,
+        'hapc_consecutive': hapc_consecutive_entry,
+        'hapc_amplitude': hapc_amplitude_entry
+    }
+
+    return sliders, settings_sliders, pattern_params

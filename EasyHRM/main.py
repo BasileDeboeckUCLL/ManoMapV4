@@ -37,7 +37,7 @@ def create_main_window():
     screen_height = app.winfo_screenheight()
 
     window_width = int(screen_width * 0.8)
-    window_height = int(screen_height * 0.8)
+    window_height = int(screen_height * 0.85)
 
     position_top = int(screen_height / 2 - window_height / 2) - 30
     position_right = int(screen_width / 2 - window_width / 2)

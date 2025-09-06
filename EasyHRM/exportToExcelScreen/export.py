@@ -14,6 +14,35 @@ HIGH_AMPLITUDE_MINIMUM_LENGTH_MM = 100
 LONG_PATTERN_MINIMUM_SENSORS = 5
 ALTERNATING_EVENT_COLORS = ["F0FC5A", "FDE9D9"]
 
+def get_pattern_parameters(pattern_params):
+    """Extract pattern parameters from GUI inputs with defaults"""
+    try:
+        long_sensors = int(pattern_params['long_sensors'].get() or 5)
+        long_distance = int(pattern_params['long_distance'].get() or 100)
+        hapc_sensors = int(pattern_params['hapc_sensors'].get() or 5)
+        hapc_distance = int(pattern_params['hapc_distance'].get() or 100)
+        hapc_consecutive = int(pattern_params['hapc_consecutive'].get() or 3)
+        hapc_amplitude = int(pattern_params['hapc_amplitude'].get() or 100)
+        
+        return {
+            'LONG_PATTERN_MINIMUM_SENSORS': long_sensors,
+            'LONG_PATTERN_MINIMUM_DISTANCE': long_distance,
+            'HAPC_PATTERN_MINIMUM_SENSORS': hapc_sensors,
+            'HAPC_PATTERN_MINIMUM_DISTANCE': hapc_distance,
+            'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': hapc_consecutive,
+            'HIGH_AMPLITUDE_MINIMUM_VALUE': hapc_amplitude
+        }
+    except (ValueError, TypeError):
+        # Return defaults if parsing fails
+        return {
+            'LONG_PATTERN_MINIMUM_SENSORS': 5,
+            'LONG_PATTERN_MINIMUM_DISTANCE': 100,
+            'HAPC_PATTERN_MINIMUM_SENSORS': 5,
+            'HAPC_PATTERN_MINIMUM_DISTANCE': 100,
+            'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': 3,
+            'HIGH_AMPLITUDE_MINIMUM_VALUE': 100
+        }
+
 def initialize_comprehensive_statistics(event_names):
     """Initialize the comprehensive statistics structure for the new table"""
     regions = ["Ascending", "Transverse", "Descending", "Sigmoid", "Rectum"]
@@ -48,8 +77,18 @@ def initialize_comprehensive_statistics(event_names):
     
     return comprehensive_stats
 
-def classify_pattern_enhanced(row, sliders, distance_between_sensors):
+def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=None):
     """Enhanced pattern classification with new rules and error handling"""
+    if params is None:
+        params = {
+            'LONG_PATTERN_MINIMUM_SENSORS': 5,
+            'LONG_PATTERN_MINIMUM_DISTANCE': 100,
+            'HAPC_PATTERN_MINIMUM_SENSORS': 5,
+            'HAPC_PATTERN_MINIMUM_DISTANCE': 100,
+            'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': 3,
+            'HIGH_AMPLITUDE_MINIMUM_VALUE': 100
+        }
+
     try:
         length_sensors = 0
         if len(row) > 9 and row[9] and row[9].value is not None:
@@ -77,7 +116,7 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors):
                 velocity = 0
         
         distance_mm = distance_between_sensors * length_sensors if distance_between_sensors and length_sensors else 0
-        is_long = (distance_mm >= 100) and (length_sensors >= LONG_PATTERN_MINIMUM_SENSORS)
+        is_long = (distance_mm >= params['LONG_PATTERN_MINIMUM_DISTANCE']) and (length_sensors >= params['LONG_PATTERN_MINIMUM_SENSORS'])
         
         amplitudes = []
         for col_idx in range(13, min(len(row), 50)):
@@ -85,10 +124,10 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors):
                 isinstance(row[col_idx].value, (int, float)) and row[col_idx].value > 0):
                 amplitudes.append(float(row[col_idx].value))
         
-        high_amp_count = count_consecutive_high_amplitude(amplitudes, HIGH_AMPLITUDE_MINIMUM_VALUE)
-        is_high_amplitude = (high_amp_count >= HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH)
-        is_hapc = is_high_amplitude and (direction == 'a') and (distance_mm >= 100) and (length_sensors >= LONG_PATTERN_MINIMUM_SENSORS)
-        is_harpc = is_high_amplitude and (direction == 'r') and (distance_mm >= 100) and (length_sensors >= LONG_PATTERN_MINIMUM_SENSORS)
+        high_amp_count = count_consecutive_high_amplitude(amplitudes, params['HIGH_AMPLITUDE_MINIMUM_VALUE'])
+        is_high_amplitude = (high_amp_count >= params['HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH'])
+        is_hapc = is_high_amplitude and (direction == 'a') and (distance_mm >= params['HAPC_PATTERN_MINIMUM_DISTANCE']) and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
+        is_harpc = is_high_amplitude and (direction == 'r') and (distance_mm >= params['HAPC_PATTERN_MINIMUM_DISTANCE']) and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
         
         pattern_length_category = "Long" if is_long else "Short"
         
@@ -240,7 +279,7 @@ def reset_disabled_sections():
     global disabled_sections
     disabled_sections = []
 
-def exportToXlsx(data, file_name, sliders, events, settings_sliders, first_event_text, original_first_row=None):
+def exportToXlsx(data, file_name, sliders, events, settings_sliders, first_event_text, pattern_params=None, original_first_row=None):
     try:
         base_name, ext = file_name.rsplit('.', 1)
         new_file_name = f"{base_name}_analysis.xlsx"
@@ -280,7 +319,7 @@ def exportToXlsx(data, file_name, sliders, events, settings_sliders, first_event
                 print(f"Error processing event {event_name}: {e}")
                 raise
         
-        wb = assignSectionsBasedOnStartSection(new_file_name, sliders, event_names, settings_sliders, first_event_text)
+        wb = assignSectionsBasedOnStartSection(new_file_name, sliders, event_names, settings_sliders, first_event_text, pattern_params)
         
         file_name = filedialog.asksaveasfilename(
             defaultextension=".xlsx", 
@@ -432,7 +471,16 @@ def insertEmptyRows(file_name, amount):
     
     wb.save(file_name)
 
-def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_sliders, first_event_text):
+def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_sliders, first_event_text, pattern_params=None):
+    params = get_pattern_parameters(pattern_params) if pattern_params else {
+        'LONG_PATTERN_MINIMUM_SENSORS': 5,
+        'LONG_PATTERN_MINIMUM_DISTANCE': 100,
+        'HAPC_PATTERN_MINIMUM_SENSORS': 5,
+        'HAPC_PATTERN_MINIMUM_DISTANCE': 100,
+        'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': 3,
+        'HIGH_AMPLITUDE_MINIMUM_VALUE': 100
+    }
+
     try:
         if settings_sliders and len(settings_sliders) > 0:
             slider_value = settings_sliders[0].get()
@@ -564,7 +612,7 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 not str(row[10].value).replace('.', '').replace('-', '').isdigit()):
                 continue
                 
-            classification = classify_pattern_enhanced(row, sliders, distance_between_sensors)
+            classification = classify_pattern_enhanced(row, sliders, distance_between_sensors, params)
             starting_region = determine_starting_region(row, sliders)
             ending_region = determine_ending_region(row, sliders)
             classification['starting_region'] = starting_region
