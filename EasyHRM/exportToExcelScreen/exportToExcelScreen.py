@@ -44,12 +44,12 @@ def export_to_excel_screen(root, go_back_func, create_main_screen_func):
     # Label for Events frame
     events_label = ctk.CTkLabel(events_frame, text="Events", font=("Arial", 14, "bold"))
     events_label.pack(pady=10)
-    first_event_text = create_event_interface(events_frame)
+    create_event_interface(events_frame)
     events = show_comments(events_frame)
     
 
     # Bottom Buttons
-    button_export = ctk.CTkButton(main_frame, text="Export", command=lambda: exportToXlsx(df, file_name, sliders, events, settings_sliders, first_event_text, pattern_params), state='disabled')
+    button_export = ctk.CTkButton(main_frame, text="Export", command=lambda: exportToXlsx(df, file_name, sliders, events, settings_sliders, pattern_params), state='disabled')
     button_export.grid(row=3, column=0, columnspan=3, pady=10, sticky="ew")
 
     button_back = ctk.CTkButton(main_frame, text="Back", command=lambda: go_back_func(root, create_main_screen_func))

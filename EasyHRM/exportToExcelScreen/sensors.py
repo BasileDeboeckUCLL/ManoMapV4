@@ -258,10 +258,6 @@ def create_sensors_frame(root):
         value_label = ctk.CTkEntry(sensors_frame, textvariable=value, width=40)
         value_label.grid(row=row_index, column=1, padx=5, pady=5)
 
-    # Reset button
-    reset_button = ctk.CTkButton(sensors_frame, text="Reset Sensors", command=reset_sensors)
-    reset_button.grid(row=len(colonregions) + len(settings) + 2, column=0, columnspan=4, padx=5, pady=10, sticky="ew")
-
     # Pattern Classification Parameters
     pattern_row_start = len(colonregions) + len(settings) + 3
     
@@ -316,5 +312,9 @@ def create_sensors_frame(root):
         'hapc_consecutive': hapc_consecutive_entry,
         'hapc_amplitude': hapc_amplitude_entry
     }
+
+    # Reset button
+    reset_button = ctk.CTkButton(sensors_frame, text="Reset Sensors", command=reset_sensors)
+    reset_button.grid(row=len(colonregions) + len(settings) + 2, column=0, columnspan=4, padx=5, pady=10, sticky="ew")
 
     return sliders, settings_sliders, pattern_params

@@ -279,7 +279,7 @@ def reset_disabled_sections():
     global disabled_sections
     disabled_sections = []
 
-def exportToXlsx(data, file_name, sliders, events, settings_sliders, first_event_text, pattern_params=None, original_first_row=None):
+def exportToXlsx(data, file_name, sliders, events, settings_sliders, pattern_params=None, original_first_row=None):
     try:
         base_name, ext = file_name.rsplit('.', 1)
         new_file_name = f"{base_name}_analysis.xlsx"
@@ -319,7 +319,7 @@ def exportToXlsx(data, file_name, sliders, events, settings_sliders, first_event
                 print(f"Error processing event {event_name}: {e}")
                 raise
         
-        wb = assignSectionsBasedOnStartSection(new_file_name, sliders, event_names, settings_sliders, first_event_text, pattern_params)
+        wb = assignSectionsBasedOnStartSection(new_file_name, sliders, event_names, settings_sliders, pattern_params)
         
         file_name = filedialog.asksaveasfilename(
             defaultextension=".xlsx", 
@@ -471,7 +471,7 @@ def insertEmptyRows(file_name, amount):
     
     wb.save(file_name)
 
-def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_sliders, first_event_text, pattern_params=None):
+def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_sliders, pattern_params=None):
     params = get_pattern_parameters(pattern_params) if pattern_params else {
         'LONG_PATTERN_MINIMUM_SENSORS': 5,
         'LONG_PATTERN_MINIMUM_DISTANCE': 100,
@@ -493,13 +493,7 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
     wb = load_workbook(file_name)
     ws = wb.active
 
-    if hasattr(first_event_text, 'get'):
-        first_event_value = first_event_text.get().strip() if first_event_text.get() else "Post-Wake"
-    else:
-        first_event_value = str(first_event_text).strip() if first_event_text else "Post-Wake"
-
-    all_events = [first_event_value]
-    all_events.extend(event_names)
+    all_events = event_names.copy()
 
     comprehensive_stats = initialize_comprehensive_statistics(all_events)
     
@@ -522,10 +516,11 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
     length_counters = {}
     high_amplitude_counters = {}
     
-    first_event_name = first_event_value
-    counters[first_event_name] = {}
-    length_counters[first_event_name] = {}
-    high_amplitude_counters[first_event_name] = {}
+    # Initialize with first event from event_names if any exist
+    if event_names:
+        current_event = event_names[0]
+    else:
+        current_event = "Default"  # Fallback if no events defined
     
     for event_name in event_names:
         counters[event_name] = {}
@@ -563,7 +558,10 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
     length_counter = length_counter_template.copy()
     high_amplitude_counter = high_amplitude_counters_template.copy()
     
-    current_event = first_event_name
+    if event_names:
+        current_event = event_names[0]
+    else:
+        current_event = "Default"
 
     # Process each pattern row
     for row_idx in range(27, ws.max_row + 1):
