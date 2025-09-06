@@ -51,7 +51,7 @@ def create_event_interface(settings_frame):
 
     # Create a frame to contain buttons and scrollable comments
     button_and_comments_frame = ctk.CTkFrame(settings_frame, fg_color="transparent")
-    button_and_comments_frame.pack(fill="both", expand=True, padx=1, pady=1)
+    button_and_comments_frame.pack(fill="both", expand=True, padx=15, pady=15)
 
     # Place Event Button
     placeCommentButton = ctk.CTkButton(button_and_comments_frame, text="Place Event", 
