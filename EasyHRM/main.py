@@ -6,16 +6,6 @@ import sys
 import os
 from PIL import Image
 
-import sys
-import os
-import customtkinter as ctk
-from exportToExcelScreen.exportToExcelScreen import export_to_excel_screen
-from patternDetectionScreen.patternDetectionScreen import open_screen_for_pattern_detection
-from utils import go_back, toggle_mode
-from PIL import Image
-
-import utils
-
 import utils
 
 def create_main_window():
