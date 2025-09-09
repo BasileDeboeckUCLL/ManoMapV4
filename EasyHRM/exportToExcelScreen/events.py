@@ -3,6 +3,8 @@ from utils import validateTime, convertTime, convertTimeToText, show_info_popup
 
 commentsDict = {}
 
+firstEventText = None
+
 def placeComment(settings_frame):
     global commentsDict, hourText, minText, secText, commentText
     time = get_time_text()
@@ -15,11 +17,15 @@ def placeComment(settings_frame):
     commentText.delete(0, ctk.END)
 
 def create_event_interface(settings_frame):
-    global hourText, minText, secText, commentText
+    global hourText, minText, secText, commentText, firstEventText
 
     # Time and Comment Frame
     timecommentBundle = ctk.CTkFrame(settings_frame, fg_color="transparent")
     timecommentBundle.pack(padx=20, pady=20)
+
+    # First Event Entry
+    firstEventText = ctk.CTkEntry(timecommentBundle, width=300, placeholder_text="First-Event")
+    firstEventText.pack(padx=2, pady=5)
 
     # Comment Entry (no label)
     commentText = ctk.CTkEntry(timecommentBundle, width=300, placeholder_text="Event")
@@ -138,7 +144,7 @@ def edit_comment(key, settings_frame):
         ctk.CTkButton(edit_window, text="Save", command=save_edit).pack(pady=10)
 
 def reset_events(settings_frame):
-    global commentsDict
+    global commentsDict, firstEventText
     commentsDict.clear()
     
     # Clear input fields
@@ -146,8 +152,19 @@ def reset_events(settings_frame):
     hourText.delete(0, ctk.END)
     minText.delete(0, ctk.END)
     secText.delete(0, ctk.END)
+
+    # Clear first event field
+    if firstEventText:
+        firstEventText.delete(0, ctk.END)
     
     show_comments(settings_frame)
+
+def get_first_event_name():
+    global firstEventText
+    if firstEventText and firstEventText.get().strip():
+        return firstEventText.get().strip()
+    else:
+        return "Post-Wake"
 
 def show_comments(settings_frame):
     # Clear existing comments frame
@@ -187,4 +204,4 @@ def show_comments(settings_frame):
                                     command=lambda k=key, sf=settings_frame: delete_comment(k, sf))
         delete_button.pack(side='left', padx=2)
     
-    return commentsDict
+    return commentsDict, firstEventText if 'firstEventText' in globals() else None

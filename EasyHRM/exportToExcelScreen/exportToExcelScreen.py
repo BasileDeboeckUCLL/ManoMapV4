@@ -45,16 +45,16 @@ def export_to_excel_screen(root, go_back_func, create_main_screen_func):
     events_label = ctk.CTkLabel(events_frame, text="Events", font=("Arial", 14, "bold"))
     events_label.pack(pady=10)
     create_event_interface(events_frame)
-    events = show_comments(events_frame)
+    events, first_event_field = show_comments(events_frame)
     
     # Define a function that resets events and then navigates back
     def reset_and_go_back():
-        from exportToExcelScreen.events import reset_events
+        from exportToExcelScreen.events import reset_events, get_first_event_name
         reset_events(events_frame)
         go_back_func(root, create_main_screen_func)
 
     # Bottom Buttons
-    button_export = ctk.CTkButton(main_frame, text="Export", command=lambda: exportToXlsx(df, file_name, sliders, events, settings_sliders, pattern_params), state='disabled')
+    button_export = ctk.CTkButton(main_frame, text="Export", command=lambda: exportToXlsx(df, file_name, sliders, events, settings_sliders, pattern_params, first_event_field), state='disabled')
     button_export.grid(row=3, column=0, columnspan=3, pady=10, sticky="ew")
 
     button_back = ctk.CTkButton(main_frame, text="Back", command=reset_and_go_back)  # Updated this line

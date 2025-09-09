@@ -269,7 +269,7 @@ def reset_disabled_sections():
     global disabled_sections
     disabled_sections = []
 
-def exportToXlsx(data, file_name, sliders, events, settings_sliders, pattern_params=None, original_first_row=None):
+def exportToXlsx(data, file_name, sliders, events, settings_sliders, pattern_params=None, first_event_field=None, original_first_row=None):
     try:
         base_name, ext = file_name.rsplit('.', 1)
         new_file_name = f"{base_name}_analysis.xlsx"
@@ -297,7 +297,12 @@ def exportToXlsx(data, file_name, sliders, events, settings_sliders, pattern_par
         create_space_for_comprehensive_table(new_file_name)
         mergeAndColorCells(new_file_name, sliders)
 
-        event_names = []
+        # Add first event at 0-0-0
+        from exportToExcelScreen.events import get_first_event_name
+        first_event_name = get_first_event_name()
+        addEventNameAtGivenTime(new_file_name, 0, 0, 0, first_event_name)
+
+        event_names = [first_event_name]
         for time, event_name in events.items():
             event_names.append(event_name)
             try:
