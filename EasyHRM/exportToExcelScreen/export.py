@@ -114,7 +114,7 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=Non
                 isinstance(row[col_idx].value, (int, float)) and row[col_idx].value > 0):
                 amplitudes.append(float(row[col_idx].value))
         
-        high_amp_count = count_consecutive_high_amplitude(amplitudes, params['HIGH_AMPLITUDE_MINIMUM_VALUE'])
+        high_amp_count = count_high_amplitude_sensors(amplitudes, params['HIGH_AMPLITUDE_MINIMUM_VALUE'])
         is_high_amplitude = (high_amp_count >= params['HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH'])
         is_hapc = is_high_amplitude and (direction == 'a') and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
         is_harpc = is_high_amplitude and (direction == 'r') and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
@@ -142,22 +142,17 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=Non
             'starting_region': None
         }
 
-def count_consecutive_high_amplitude(amplitudes, threshold):
-    """Count consecutive sensors above threshold"""
-    if not amplitudes or len(amplitudes) < 3:
+def count_high_amplitude_sensors(amplitudes, threshold):
+    """Count total sensors above threshold (not necessarily consecutive)"""
+    if not amplitudes:
         return 0
     
-    max_consecutive = 0
-    current_consecutive = 0
-    
+    count = 0
     for amp in amplitudes:
         if isinstance(amp, (int, float)) and amp >= threshold:
-            current_consecutive += 1
-            max_consecutive = max(max_consecutive, current_consecutive)
-        else:
-            current_consecutive = 0
+            count += 1
     
-    return max_consecutive
+    return count
 
 def determine_starting_region(row, sliders):
     """Determine which colon region a pattern starts in based on first active sensor"""
