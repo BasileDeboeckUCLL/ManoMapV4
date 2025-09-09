@@ -111,7 +111,7 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=Non
         amplitudes = []
         for col_idx in range(13, min(len(row), 50)):
             if (col_idx < len(row) and row[col_idx] and row[col_idx].value is not None and 
-                isinstance(row[col_idx].value, (int, float)) and row[col_idx].value > 0):
+                isinstance(row[col_idx].value, (int, float))):
                 amplitudes.append(float(row[col_idx].value))
         
         high_amp_count = count_high_amplitude_sensors(amplitudes, params['HIGH_AMPLITUDE_MINIMUM_VALUE'])
@@ -625,7 +625,13 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
             
             update_comprehensive_stats(comprehensive_stats, classification, current_event, row, sliders)
             
-            # Handle HAPCs/HARPCs
+            # Get sequence range for this row
+            first_sensor, last_sensor = get_sequence_range(row)
+
+            # Fill broken sensors within the sequence
+            fill_broken_sensors_in_sequence(ws, row_idx, row, first_sensor, last_sensor)
+
+            # Handle HAPCs/HARPCs - treat entire sequence as one unit
             if classification['is_hapc']:
                 high_amplitude_counter["HAPCs"] += 1
                 comprehensive_stats[current_event]['HAPCs']['count'] += 1
@@ -634,15 +640,9 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 if classification['amplitudes']:
                     comprehensive_stats[current_event]['HAPCs']['amplitudes'].extend(classification['amplitudes'])
                 
-                # Color sensor cells green
-                for row_idx_sensor in range(13, len(row)):
-                    if (row[row_idx_sensor] and row[row_idx_sensor].value is not None and 
-                        isinstance(row[row_idx_sensor].value, (int, float)) and 
-                        row[row_idx_sensor].value > 0):
-                        excel_col = row_idx_sensor + 1
-                        sensor_cell = ws.cell(row=row_idx, column=excel_col)
-                        sensor_cell.fill = PatternFill(start_color="92D050", end_color="92D050", fill_type="solid")
-                        
+                # Color entire sequence green (including broken sensors)
+                color_entire_sequence(ws, row_idx, row, first_sensor, last_sensor, "92D050")
+                            
             elif classification['is_harpc']:
                 high_amplitude_counter["HARPCs"] += 1
                 comprehensive_stats[current_event]['HARPCs']['count'] += 1
@@ -651,14 +651,8 @@ def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_
                 if classification['amplitudes']:
                     comprehensive_stats[current_event]['HARPCs']['amplitudes'].extend(classification['amplitudes'])
                 
-                # Color sensor cells red
-                for row_idx_sensor in range(13, len(row)):
-                    if (row[row_idx_sensor] and row[row_idx_sensor].value is not None and 
-                        isinstance(row[row_idx_sensor].value, (int, float)) and 
-                        row[row_idx_sensor].value > 0):
-                        excel_col = row_idx_sensor + 1
-                        sensor_cell = ws.cell(row=row_idx, column=excel_col)
-                        sensor_cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+                # Color entire sequence red (including broken sensors)
+                color_entire_sequence(ws, row_idx, row, first_sensor, last_sensor, "FF0000")
 
             # Update pattern counters
             pattern = classification['direction']
@@ -1133,3 +1127,49 @@ def apply_comprehensive_table_formatting(ws, start_row, start_col, event_names):
     for row_num, (pattern_type, color) in special_pattern_rows.items():
         cell = ws.cell(row=row_num, column=start_col)
         cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+
+def get_sequence_range(row):
+    """Get the start and end sensor indices for the sequence (first to last non-zero sensor)"""
+    first_sensor = None
+    last_sensor = None
+    
+    for col_idx in range(13, min(len(row), 50)):
+        if (col_idx < len(row) and row[col_idx] and row[col_idx].value is not None and 
+            isinstance(row[col_idx].value, (int, float))):
+            sensor_idx = col_idx - 12
+            if row[col_idx].value > 0:
+                if first_sensor is None:
+                    first_sensor = sensor_idx
+                last_sensor = sensor_idx
+    
+    return first_sensor, last_sensor
+
+def fill_broken_sensors_in_sequence(ws, row_idx, row, first_sensor, last_sensor):
+    """Fill broken sensors (0 values) within sequence with 'broken' text"""
+    if first_sensor is None or last_sensor is None:
+        return
+    
+    for col_idx in range(13, min(len(row), 50)):
+        if col_idx < len(row):
+            sensor_idx = col_idx - 12
+            if first_sensor <= sensor_idx <= last_sensor:
+                cell = row[col_idx]
+                if (cell and cell.value is not None and 
+                    isinstance(cell.value, (int, float)) and cell.value == 0):
+                    # Fill with "broken" text
+                    ws.cell(row=row_idx, column=col_idx + 1, value="broken")
+
+def color_entire_sequence(ws, row_idx, row, first_sensor, last_sensor, color):
+    """Color the entire sequence range with the specified color"""
+    if first_sensor is None or last_sensor is None:
+        return
+    
+    fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+    
+    for col_idx in range(13, min(len(row), 50)):
+        if col_idx < len(row):
+            sensor_idx = col_idx - 12
+            if first_sensor <= sensor_idx <= last_sensor:
+                excel_col = col_idx + 1
+                sensor_cell = ws.cell(row=row_idx, column=excel_col)
+                sensor_cell.fill = fill
