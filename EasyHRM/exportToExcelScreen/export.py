@@ -10,7 +10,6 @@ EVENT_COLOR = "F0FC5A"
 disabled_sections = []
 HIGH_AMPLITUDE_MINIMUM_VALUE = 100
 HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH = 3
-HIGH_AMPLITUDE_MINIMUM_LENGTH_MM = 100
 LONG_PATTERN_MINIMUM_SENSORS = 5
 ALTERNATING_EVENT_COLORS = ["F0FC5A", "FDE9D9"]
 
@@ -18,17 +17,13 @@ def get_pattern_parameters(pattern_params):
     """Extract pattern parameters from GUI inputs with defaults"""
     try:
         long_sensors = int(pattern_params['long_sensors'].get() or 5)
-        long_distance = int(pattern_params['long_distance'].get() or 100)
         hapc_sensors = int(pattern_params['hapc_sensors'].get() or 5)
-        hapc_distance = int(pattern_params['hapc_distance'].get() or 100)
         hapc_consecutive = int(pattern_params['hapc_consecutive'].get() or 3)
         hapc_amplitude = int(pattern_params['hapc_amplitude'].get() or 100)
         
         return {
             'LONG_PATTERN_MINIMUM_SENSORS': long_sensors,
-            'LONG_PATTERN_MINIMUM_DISTANCE': long_distance,
             'HAPC_PATTERN_MINIMUM_SENSORS': hapc_sensors,
-            'HAPC_PATTERN_MINIMUM_DISTANCE': hapc_distance,
             'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': hapc_consecutive,
             'HIGH_AMPLITUDE_MINIMUM_VALUE': hapc_amplitude
         }
@@ -36,9 +31,7 @@ def get_pattern_parameters(pattern_params):
         # Return defaults if parsing fails
         return {
             'LONG_PATTERN_MINIMUM_SENSORS': 5,
-            'LONG_PATTERN_MINIMUM_DISTANCE': 100,
             'HAPC_PATTERN_MINIMUM_SENSORS': 5,
-            'HAPC_PATTERN_MINIMUM_DISTANCE': 100,
             'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': 3,
             'HIGH_AMPLITUDE_MINIMUM_VALUE': 100
         }
@@ -82,9 +75,7 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=Non
     if params is None:
         params = {
             'LONG_PATTERN_MINIMUM_SENSORS': 5,
-            'LONG_PATTERN_MINIMUM_DISTANCE': 100,
             'HAPC_PATTERN_MINIMUM_SENSORS': 5,
-            'HAPC_PATTERN_MINIMUM_DISTANCE': 100,
             'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': 3,
             'HIGH_AMPLITUDE_MINIMUM_VALUE': 100
         }
@@ -115,8 +106,7 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=Non
             except (ValueError, TypeError):
                 velocity = 0
         
-        distance_mm = distance_between_sensors * length_sensors if distance_between_sensors and length_sensors else 0
-        is_long = (distance_mm >= params['LONG_PATTERN_MINIMUM_DISTANCE']) and (length_sensors >= params['LONG_PATTERN_MINIMUM_SENSORS'])
+        is_long = (length_sensors >= params['LONG_PATTERN_MINIMUM_SENSORS'])
         
         amplitudes = []
         for col_idx in range(13, min(len(row), 50)):
@@ -126,8 +116,8 @@ def classify_pattern_enhanced(row, sliders, distance_between_sensors, params=Non
         
         high_amp_count = count_consecutive_high_amplitude(amplitudes, params['HIGH_AMPLITUDE_MINIMUM_VALUE'])
         is_high_amplitude = (high_amp_count >= params['HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH'])
-        is_hapc = is_high_amplitude and (direction == 'a') and (distance_mm >= params['HAPC_PATTERN_MINIMUM_DISTANCE']) and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
-        is_harpc = is_high_amplitude and (direction == 'r') and (distance_mm >= params['HAPC_PATTERN_MINIMUM_DISTANCE']) and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
+        is_hapc = is_high_amplitude and (direction == 'a') and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
+        is_harpc = is_high_amplitude and (direction == 'r') and (length_sensors >= params['HAPC_PATTERN_MINIMUM_SENSORS'])
         
         pattern_length_category = "Long" if is_long else "Short"
         
@@ -474,9 +464,7 @@ def insertEmptyRows(file_name, amount):
 def assignSectionsBasedOnStartSection(file_name, sliders, event_names, settings_sliders, pattern_params=None):
     params = get_pattern_parameters(pattern_params) if pattern_params else {
         'LONG_PATTERN_MINIMUM_SENSORS': 5,
-        'LONG_PATTERN_MINIMUM_DISTANCE': 100,
         'HAPC_PATTERN_MINIMUM_SENSORS': 5,
-        'HAPC_PATTERN_MINIMUM_DISTANCE': 100,
         'HIGH_AMPLITUDE_MINIMUM_PATTERN_LENGTH': 3,
         'HIGH_AMPLITUDE_MINIMUM_VALUE': 100
     }

@@ -204,12 +204,8 @@ def create_sensors_frame(root):
         # Reset pattern parameters
         pattern_params['long_sensors'].delete(0, 'end')
         pattern_params['long_sensors'].insert(0, "5")
-        pattern_params['long_distance'].delete(0, 'end')
-        pattern_params['long_distance'].insert(0, "100")
         pattern_params['hapc_sensors'].delete(0, 'end')
         pattern_params['hapc_sensors'].insert(0, "5")
-        pattern_params['hapc_distance'].delete(0, 'end')
-        pattern_params['hapc_distance'].insert(0, "100")
         pattern_params['hapc_consecutive'].delete(0, 'end')
         pattern_params['hapc_consecutive'].insert(0, "3")
         pattern_params['hapc_amplitude'].delete(0, 'end')
@@ -269,13 +265,7 @@ def create_sensors_frame(root):
     long_sensors_entry = ctk.CTkEntry(long_frame, width=40)
     long_sensors_entry.pack(side="left", padx=2)
     long_sensors_entry.insert(0, "5")
-    
-    ctk.CTkLabel(long_frame, text="sensors and").pack(side="left", padx=2)
-    long_distance_entry = ctk.CTkEntry(long_frame, width=40)
-    long_distance_entry.pack(side="left", padx=2)
-    long_distance_entry.insert(0, "100")
-    
-    ctk.CTkLabel(long_frame, text="mm long").pack(side="left", padx=2)
+    ctk.CTkLabel(long_frame, text="sensors long").pack(side="left", padx=2)
     
     # HA(R)PC parameters
     hapc_frame = ctk.CTkFrame(sensors_frame, fg_color="transparent")
@@ -286,12 +276,7 @@ def create_sensors_frame(root):
     hapc_sensors_entry.pack(side="left", padx=2)
     hapc_sensors_entry.insert(0, "5")
     
-    ctk.CTkLabel(hapc_frame, text="sensors and").pack(side="left", padx=2)
-    hapc_distance_entry = ctk.CTkEntry(hapc_frame, width=40)
-    hapc_distance_entry.pack(side="left", padx=2)
-    hapc_distance_entry.insert(0, "100")
-    
-    ctk.CTkLabel(hapc_frame, text="mm long of which").pack(side="left", padx=2)
+    ctk.CTkLabel(hapc_frame, text="sensors long of which").pack(side="left", padx=2)
     hapc_consecutive_entry = ctk.CTkEntry(hapc_frame, width=40)
     hapc_consecutive_entry.pack(side="left", padx=2)
     hapc_consecutive_entry.insert(0, "3")
@@ -306,9 +291,7 @@ def create_sensors_frame(root):
     # Store pattern parameter entries
     pattern_params = {
         'long_sensors': long_sensors_entry,
-        'long_distance': long_distance_entry,
         'hapc_sensors': hapc_sensors_entry,
-        'hapc_distance': hapc_distance_entry,
         'hapc_consecutive': hapc_consecutive_entry,
         'hapc_amplitude': hapc_amplitude_entry
     }
